@@ -1,4 +1,5 @@
 using EntityFrameworkCourse;
+using EntityFrameworkCourse.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -30,13 +31,43 @@ app.MapGet("/dbconexion", async ([FromServices] TareasContext dbContext) =>
 app.MapGet("/api/tareas", async ([FromServices] TareasContext dbContext) => 
 {
     // Get all 
-    //return Results.Ok(dbContext.Tareas);
+    return Results.Ok(dbContext.Tareas);
 
     // Get Tareas with Prioridad = Baja
     //return Results.Ok(dbContext.Tareas.Where(p => p.PrioridadTarea == EntityFrameworkCourse.Models.Prioridad.Baja));
 
     // Get Tareas included Categorias
-    return Results.Ok(dbContext.Tareas.Include(p => p.Categoria).Where(p => p.PrioridadTarea == EntityFrameworkCourse.Models.Prioridad.Baja));
+    //return Results.Ok(dbContext.Tareas.Include(p => p.Categoria).Where(p => p.PrioridadTarea == EntityFrameworkCourse.Models.Prioridad.Baja));
+});
+
+app.MapPost("/api/tareas", async ([FromServices] TareasContext dbContext, [FromBody] Tarea tarea) => 
+{
+    tarea.TareaId = Guid.NewGuid();
+    tarea.FechaCreacion = DateTime.Now;
+    await dbContext.AddAsync(tarea); // first way
+    //await dbContext.Tareas.AddAsync(tarea); // second way
+
+    await dbContext.SaveChangesAsync();
+
+    return Results.Ok();
+});
+
+app.MapPut("/api/tareas/{id}", async ([FromServices] TareasContext dbContext, [FromBody] Tarea tarea, [FromRoute] Guid id) => 
+{
+    var tareaActual = dbContext.Tareas.Find(id); // basically find by Id of the entity
+
+    if (tareaActual != null)
+    {
+        tareaActual.CategoriaId = tarea.CategoriaId;
+        tareaActual.Titulo = tarea.Titulo;
+        tareaActual.PrioridadTarea = tarea.PrioridadTarea;
+        tareaActual.Descripcion = tarea.Descripcion;
+
+        await dbContext.SaveChangesAsync();
+        return Results.Ok();
+    }
+
+    return Results.NotFound();
 });
 
 app.Run();
